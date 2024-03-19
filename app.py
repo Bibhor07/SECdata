@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from edgar_functions import get_same_sic_companies, generate_main_df
-import streamlit.components.v1 as components
+
 
 # Load the data
 df = pd.read_csv("Final_company_data.csv")

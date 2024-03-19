@@ -352,12 +352,15 @@ def get_label_calc_tags(ticker):
     for tag in label_tags:
         id = tag.get('xlink:label')
         match = lab_pattern.search(id)
+        if match is not None:
+            label_tag = match.group(1)
+        else:
+            label_tag = id
         label = tag.text
-        if match:
-            if match.group(1) in lab_tags.keys():
-                lab_tags[match.group(1)].append(label)
-            else:
-                lab_tags[match.group(1)] = [label]
+        if label_tag in lab_tags.keys():
+            lab_tags[label_tag].append(label)
+        else:
+            lab_tags[label_tag] = [label]
 
     # ---------- Calc Tags ------------
     calc_url = f"https://sec.gov{url_cal}"
@@ -383,12 +386,16 @@ def get_label_calc_tags(ticker):
             main_fact = match_from.group(1)
             under_fact = match_to.group(1)
 
-            if main_fact in cal_tags.keys():
-                # If it is, append the subsidiary fact to the list of values
-                cal_tags[main_fact].append(under_fact)
-            else:
-                # If not, create a new entry with the main fact as key and a list containing the subsidiary fact as value
-                cal_tags[main_fact] = [under_fact]
+        if match_to is None and match_from is None:
+            main_fact = from_attribute
+            under_fact = to_attribute
+
+        if main_fact in cal_tags.keys():
+            # If it is, append the subsidiary fact to the list of values
+            cal_tags[main_fact].append(under_fact)
+        else:
+            # If not, create a new entry with the main fact as key and a list containing the subsidiary fact as value
+            cal_tags[main_fact] = [under_fact]
 
     # Initialize an empty dictionary to hold the hierarchy
     fact_label_hierarchy = {}
