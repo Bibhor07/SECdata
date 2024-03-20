@@ -7,7 +7,7 @@ import logging
 import calendar 
 import re
 from fuzzywuzzy import fuzz
-import xml.etree.ElementTree as et
+
 
 headers = {'user-agent':"usr@example.com"}
 
@@ -349,11 +349,17 @@ def get_label_calc_tags(ticker):
 
     lab_tags = {}
     lab_pattern = re.compile(r'us-gaap_(.*?)(?:_.*?)?$')
+    common_pattern = re.compile(r'(?<=_)(.*?)(?=_)')
+
     for tag in label_tags:
         id = tag.get('xlink:label')
-        match = lab_pattern.search(id)
-        if match is not None:
-            label_tag = match.group(1)
+        match1 = lab_pattern.search(id)
+        match2 = common_pattern.search(id)
+
+        if match1 is not None:
+            label_tag = match1.group(1)
+        elif match2 is not None:
+            label_tag = match2.group(1)
         else:
             label_tag = id
         label = tag.text
@@ -377,18 +383,26 @@ def get_label_calc_tags(ticker):
         # Get the 'xlink:to' and 'xlink:from' attributes
         to_attribute = arc.get('xlink:to')
         from_attribute = arc.get('xlink:from')
-        match_to = calc_pattern.search(to_attribute)
-        match_from = calc_pattern.search(from_attribute)
+        match_to_1 = calc_pattern.search(to_attribute)
+        match_from_1 = calc_pattern.search(from_attribute)
+
+        match_to_2 = common_pattern.search(to_attribute)
+        match_from_2 = common_pattern.search(from_attribute)
 
         # Check if both attributes start with 'loc_us-gaap_'
-        if match_to and match_from:
-            # Extract the main fact and subsidiary fact using regular expressions
-            main_fact = match_from.group(1)
-            under_fact = match_to.group(1)
-
-        if match_to is None and match_from is None:
-            main_fact = from_attribute
+        if match_to_1:
+            under_fact = match_to_1.group(1)
+        elif match_to_2:
+            under_fact = match_to_2.group(1)
+        else:
             under_fact = to_attribute
+
+        if match_from_1:
+            main_fact = match_from_1.group(1)
+        elif match_from_2:
+            main_fact = match_from_2.group(1)
+        else:
+            main_fact = from_attribute
 
         if main_fact in cal_tags.keys():
             # If it is, append the subsidiary fact to the list of values
@@ -412,7 +426,7 @@ def get_label_calc_tags(ticker):
         else:
             mf = reference_main_fact
         for tag_name in cal_tags[mf]:
-            fact_label_hierarchy[reference_main_fact][tag_name] = lab_tags[tag_name]
+            fact_label_hierarchy[reference_main_fact][tag_name] = lab_tags.get(tag_name," ")
 
     scores = {}
     for main_fact in main_facts:
